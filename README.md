@@ -1,3 +1,21 @@
+> ## This is the Printalo fork
+>
+> Upstream is [xing-shuyin/pi-web-ui](https://github.com/xing-shuyin/pi-web-ui),
+> and `main` here is a mirror of it — never touched. The work lives on the
+> **`printalo`** branch: the upstream release we ship, plus three small patches
+> listed in [PATCHES.md](PATCHES.md), each one written to be useful to anybody
+> running pi-web-ui behind a deploy pipeline, and each one proposed upstream.
+>
+> - `./scripts/sync-upstream.sh` rebases those patches onto the newest upstream
+>   release, checks it and tags it. Run it whenever the weekly
+>   `upstream check` workflow opens an issue saying we are behind.
+> - Releases are tagged `v<upstream version>-printalo.<n>`; the tarball is
+>   attached to the GitHub Release, and that is what the Printalo server
+>   installs — the pinned version lives in `made/deploy/versioni.env` in the
+>   `ddra` repository.
+> - Why this fork exists, and the rules that keep it from turning into a
+>   photograph, are in `made/docs/workflow/PIANO-fork-pi.md` in `ddra`.
+
 <div align="center">
 
 # 💬 pi-web-ui
