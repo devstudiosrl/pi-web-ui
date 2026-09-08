@@ -17,9 +17,15 @@ Printalo belongs in Printalo, not here.
 
 | # | Patch | Switch | Upstream PR | State |
 |---|---|---|---|---|
-| 1 | Managed instances: no in-app self-update, no installing plugins from the network | `PI_WEB_MANAGED=1` | — | to open |
-| 2 | Tab allow-list, enforced on the server too | `PI_WEB_TABS=chat,search,settings` | — | to open |
-| 3 | First-visit language from the browser instead of a hardcoded default | `PI_WEB_LOCALE=en` | — | to open |
+| 1 | Managed instances: no in-app self-update, no installing plugins from the network | `PI_WEB_MANAGED=1` | [#92](https://github.com/xing-shuyin/pi-web-ui/pull/92) | open |
+| 2 | Tab allow-list, enforced on the server too | `PI_WEB_TABS=chat,search,settings` | [#93](https://github.com/xing-shuyin/pi-web-ui/pull/93) | open |
+| 3 | First-visit language from the browser instead of a hardcoded default | `PI_WEB_LOCALE=en` | [#94](https://github.com/xing-shuyin/pi-web-ui/pull/94) | open |
+
+PR #92 also carries a one-line upstream fix found while writing it:
+`APP_VERSION` was always empty (it is computed at module-init time and reads a
+`const` declared further down, so it threw on the temporal dead zone and the
+`catch` swallowed it), which meant the language packs never used the
+same-version tag and always fell back to `main`.
 
 ## 1. Managed instances — `PI_WEB_MANAGED=1`
 
