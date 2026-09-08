@@ -48,11 +48,18 @@ describe("sync-upstream.sh", () => {
 	const fork = join(CASA, "fork");
 	mkdirSync(monte);
 	git(monte, "init", "-q", "-b", "main");
+	// The runner has no global git identity: without this the tag in the second
+	// run fails and the failure looks like a broken script. Setting it in the
+	// repositories themselves means every git command works, whoever runs it.
+	git(monte, "config", "user.name", "prova");
+	git(monte, "config", "user.email", "prova@example.invalid");
 	versione(monte, "0.1.0");
 	git(monte, "add", "-A");
 	git(monte, "commit", "-q", "-m", "release 0.1.0");
 
 	git(CASA, "clone", "-q", monte, fork);
+	git(fork, "config", "user.name", "prova");
+	git(fork, "config", "user.email", "prova@example.invalid");
 	git(fork, "remote", "add", "upstream", monte);
 	git(fork, "checkout", "-q", "-b", "printalo");
 	writeFileSync(join(fork, "PATCHES.md"), "the printalo patch\n");
