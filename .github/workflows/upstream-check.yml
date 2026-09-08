@@ -1,0 +1,68 @@
+# Notice, without anybody having to remember, that upstream has moved.
+#
+# A fork goes stale silently: nothing fails, nothing warns, and one day the
+# version we ship is four months behind the one that has the fix we need. This
+# runs once a week and opens an issue when the version published on npm is not
+# the one the `printalo` branch is built on. It never changes code.
+name: upstream check
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"   # Monday morning, before anybody looks
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: printalo
+          fetch-depth: 0
+
+      - name: Compare the shipped version with npm
+        id: v
+        run: |
+          ours="$(node -p "require('./package.json').version")"
+          theirs="$(npm view pi-web-ui version)"
+          echo "ours=$ours"   >> "$GITHUB_OUTPUT"
+          echo "theirs=$theirs" >> "$GITHUB_OUTPUT"
+          if [ "$ours" = "$theirs" ]; then
+            echo "behind=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "behind=yes" >> "$GITHUB_OUTPUT"
+          fi
+          echo "printalo is on $ours, npm serves $theirs"
+
+      - name: Open an issue when we are behind
+        if: steps.v.outputs.behind == 'yes'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OURS: ${{ steps.v.outputs.ours }}
+          THEIRS: ${{ steps.v.outputs.theirs }}
+        run: |
+          titolo="upstream $THEIRS is out (we ship $OURS)"
+          # One open issue at a time: a new one every Monday would train
+          # everybody to ignore them.
+          esistente="$(gh issue list --state open --search "$titolo in:title" --json number --jq '.[0].number' || true)"
+          if [ -n "$esistente" ]; then
+            echo "issue #$esistente already open"
+            exit 0
+          fi
+          gh issue create --title "$titolo" --body "$(cat <<TESTO
+\`printalo\` is built on **$OURS**; npm serves **$THEIRS**.
+
+    ./scripts/sync-upstream.sh
+
+rebases the patches onto the new release, builds, checks and tags it. If the
+rebase stops on a conflict, upstream touched exactly what one of the patches
+touches — see \`PATCHES.md\`, it is worth reading before resolving.
+
+After the tag is pushed, the release workflow attaches the tarball, and
+\`PI_WEB_UI_VERSIONE\` in ddra (\`made/deploy/versioni.env\`) points at it.
+TESTO
+)"

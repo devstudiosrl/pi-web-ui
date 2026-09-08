@@ -1,0 +1,51 @@
+# Build a tagged Printalo release and attach the tarball to it.
+#
+# The server installs pi-web-ui from this asset, not from npm: npm carries
+# upstream's package, and this fork is not going to publish a competing name
+# there. One tag, one build, one file — and the version in ddra points at it.
+name: release
+
+on:
+  push:
+    tags:
+      - "v*-printalo.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: npm ci
+      # The same three checks as sync-upstream.sh, because a tag can also be
+      # pushed by hand and a release nobody built is a release nobody tested.
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: Pack
+        id: pack
+        run: |
+          file="$(npm pack --silent)"
+          echo "file=$file" >> "$GITHUB_OUTPUT"
+          ls -l "$file"
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FILE: ${{ steps.pack.outputs.file }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "$FILE" \
+            --title "$GITHUB_REF_NAME" \
+            --notes "pi-web-ui with the Printalo patches — see PATCHES.md.
+
+Install:
+
+    npm i -g --allow-scripts=node-pty https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${FILE}
+"
