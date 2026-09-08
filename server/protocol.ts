@@ -1125,6 +1125,10 @@ export type ServerMessage =
 			 *  compares it against its own copy — a mismatch means the page was
 			 *  loaded before an app update and must be refreshed. */
 			protocolVersion?: number;
+			/** PI_WEB_TABS — the tabs this instance offers; absent means all of
+			 *  them. The client does not draw the others and the server refuses
+			 *  their messages (server/tabs.ts). */
+			tabs?: string[];
 	  }
 	| { type: "snapshot"; state: UiState }
 	| {

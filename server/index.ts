@@ -36,6 +36,7 @@ import { startControlServer } from "./control-socket.js";
 import { scheduleUploadCleanup } from "./uploads.js";
 import { ensureWindowsBash, windowsBashDir } from "./ensure-bash.js";
 import { listThemes, resolveThemeFile } from "./themes.js";
+import { parseTabs, tabsRefusal } from "./tabs.js";
 import { installPack, isKnownPack, listPacks, readPackFile, removePack } from "./locales.js";
 import {
 	PluginManager,
@@ -196,6 +197,9 @@ if (AUTH_TOKEN) {
 
 /** 引擎选择：PI_WEB_ENGINE=pi|dsh（默认 pi）。重启生效。 */
 const ENGINE: "pi" | "dsh" = process.env.PI_WEB_ENGINE === "dsh" ? "dsh" : "pi";
+
+/** PI_WEB_TABS: the tabs this instance offers. null = all of them, as before. */
+const TABS = parseTabs();
 
 app.get("/api/health", (_req, res) => {
 	res.json({ ok: true, piVersion: VERSION, cwd: CWD, pid: process.pid, engine: ENGINE });
@@ -864,6 +868,14 @@ wss.on("connection", (ws) => {
 			pending.push(msg);
 			return;
 		}
+		// A tab this instance does not offer is refused here, on the server:
+		// hiding it in the client would still leave the message reachable to
+		// anything that can open the socket. See server/tabs.ts.
+		const refusal = tabsRefusal(msg.type, TABS);
+		if (refusal) {
+			send({ type: "notice", level: "error", text: refusal });
+			return;
+		}
 		switch (msg.type) {
 			case "prompt":
 				void cs.prompt(msg.text, msg.attachments, msg.queue);
@@ -1215,6 +1227,7 @@ wss.on("connection", (ws) => {
 						serverVersion: VERSION,
 						protocolVersion: PROTOCOL_VERSION,
 						engine: ENGINE,
+						tabs: TABS ? [...TABS] : undefined,
 					});
 					// Plugin catalog: re-scan + activate new dirs on every attach so
 					// freshly dropped plugins show up without a server restart.
