@@ -81,6 +81,9 @@ export interface ChatState {
 	 *  whoever deploys this instance, so the interface does not offer them.
 	 *  The server refuses those messages regardless (server/managed.ts). */
 	managed?: boolean;
+	/** PI_WEB_TABS on the server: the tabs this instance offers. Undefined
+	 *  means all of them, which is the default. */
+	tabs?: string[];
 	/** Persisted session list for the left panel. */
 	sessions: SessionSummary[];
 	/** Open conversations (each runs its own session in parallel). */
@@ -232,7 +235,7 @@ type Action =
 	| { type: "tool_status"; status: ToolStatus }
 	| { type: "notice"; notice: Notice }
 	| { type: "dismiss_notice"; id: number }
-	| { type: "ready"; serverVersion: string; protocolVersion?: number; engine?: string; managed?: boolean }
+	| { type: "ready"; serverVersion: string; protocolVersion?: number; engine?: string; managed?: boolean; tabs?: string[] }
 	| { type: "sessions"; sessions: SessionSummary[] }
 	| {
 			type: "conversations";
@@ -494,6 +497,7 @@ function reducer(state: ChatState, action: Action): ChatState {
 				serverVersion: action.serverVersion,
 				engine: action.engine,
 				managed: action.managed === true,
+				tabs: action.tabs,
 				ready: true,
 				// Old page + new server (or the reverse) after an in-place update:
 				// WS handling on either side may be stale — banner asks for refresh.
@@ -926,6 +930,7 @@ export function useChat() {
 						protocolVersion: msg.protocolVersion,
 						engine: msg.engine,
 						managed: msg.managed,
+						tabs: msg.tabs,
 					});
 					// Ensure a fresh snapshot on (re)connect.
 					ws.send(JSON.stringify({ type: "get_state" } satisfies ClientMessage));

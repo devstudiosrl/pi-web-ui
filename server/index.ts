@@ -37,6 +37,7 @@ import { scheduleUploadCleanup } from "./uploads.js";
 import { ensureWindowsBash, windowsBashDir } from "./ensure-bash.js";
 import { listThemes, resolveThemeFile } from "./themes.js";
 import { isManaged, managedRefusal } from "./managed.js";
+import { parseTabs, tabsRefusal } from "./tabs.js";
 import { installPack, isKnownPack, listPacks, readPackFile, removePack } from "./locales.js";
 import {
 	PluginManager,
@@ -200,6 +201,9 @@ const ENGINE: "pi" | "dsh" = process.env.PI_WEB_ENGINE === "dsh" ? "dsh" : "pi";
 
 /** PI_WEB_MANAGED=1: this instance is updated by whoever deploys it. */
 const MANAGED = isManaged();
+
+/** PI_WEB_TABS: the tabs this instance offers. null = all of them, as before. */
+const TABS = parseTabs();
 
 app.get("/api/health", (_req, res) => {
 	res.json({ ok: true, piVersion: VERSION, cwd: CWD, pid: process.pid, engine: ENGINE });
@@ -872,7 +876,7 @@ wss.on("connection", (ws) => {
 		// lives here, on the server, because hiding the button in the client
 		// would still leave the message reachable to anything that can open the
 		// socket. See server/managed.ts.
-		const refusal = managedRefusal(msg.type, MANAGED);
+		const refusal = managedRefusal(msg.type, MANAGED) ?? tabsRefusal(msg.type, TABS);
 		if (refusal) {
 			send({ type: "notice", level: "error", text: refusal });
 			return;
@@ -1229,6 +1233,7 @@ wss.on("connection", (ws) => {
 						protocolVersion: PROTOCOL_VERSION,
 						engine: ENGINE,
 						managed: MANAGED,
+						tabs: TABS ? [...TABS] : undefined,
 					});
 					// Plugin catalog: re-scan + activate new dirs on every attach so
 					// freshly dropped plugins show up without a server restart.
