@@ -80,6 +80,10 @@ export interface ChatState {
 	/** PI_WEB_MANAGED=1 on the server: updates and plugin installs come from
 	 *  whoever deploys this instance, so the interface does not offer them.
 	 *  The server refuses those messages regardless (server/managed.ts). */
+	/** pi-web-ui's own version, from `ready`. `serverVersion` is the pi SDK's,
+	 *  and the update check — the client's other source — does not run on a
+	 *  managed instance. */
+	appVersion?: string;
 	managed?: boolean;
 	/** PI_WEB_TABS on the server: the tabs this instance offers. Undefined
 	 *  means all of them, which is the default. */
@@ -235,7 +239,7 @@ type Action =
 	| { type: "tool_status"; status: ToolStatus }
 	| { type: "notice"; notice: Notice }
 	| { type: "dismiss_notice"; id: number }
-	| { type: "ready"; serverVersion: string; protocolVersion?: number; engine?: string; managed?: boolean; tabs?: string[] }
+	| { type: "ready"; serverVersion: string; protocolVersion?: number; engine?: string; appVersion?: string; managed?: boolean; tabs?: string[] }
 	| { type: "sessions"; sessions: SessionSummary[] }
 	| {
 			type: "conversations";
@@ -496,6 +500,7 @@ function reducer(state: ChatState, action: Action): ChatState {
 				...state,
 				serverVersion: action.serverVersion,
 				engine: action.engine,
+				appVersion: action.appVersion,
 				managed: action.managed === true,
 				tabs: action.tabs,
 				ready: true,
@@ -929,6 +934,7 @@ export function useChat() {
 						serverVersion: msg.serverVersion,
 						protocolVersion: msg.protocolVersion,
 						engine: msg.engine,
+						appVersion: msg.appVersion,
 						managed: msg.managed,
 						tabs: msg.tabs,
 					});
@@ -942,8 +948,13 @@ export function useChat() {
 					ws.send(JSON.stringify({ type: "list_models" } satisfies ClientMessage));
 					ws.send(JSON.stringify({ type: "list_commands" } satisfies ClientMessage));
 					ws.send(JSON.stringify({ type: "get_commands" } satisfies ClientMessage));
-					ws.send(JSON.stringify({ type: "check_update" } satisfies ClientMessage));
-					ws.send(JSON.stringify({ type: "check_updates_all" } satisfies ClientMessage));
+					// A managed instance refuses both (server/managed.ts): asking
+					// anyway would greet every visitor with two red toasts about a
+					// thing the interface does not even offer.
+					if (!msg.managed) {
+						ws.send(JSON.stringify({ type: "check_update" } satisfies ClientMessage));
+						ws.send(JSON.stringify({ type: "check_updates_all" } satisfies ClientMessage));
+					}
 					break;
 				case "snapshot":
 					// Snapshot is authoritative — delta sequence tracking restarts.

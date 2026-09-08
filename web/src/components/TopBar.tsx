@@ -492,7 +492,7 @@ export function TopBar({
 					{chat.managed ? (
 						<span className="chip" title={t("updatesManaged")}>
 							<FiDownload />
-							<span className="chip-sub">v{chat.serverVersion ?? "…"}</span>
+							<span className="chip-sub">v{chat.appVersion ?? chat.update?.current ?? "…"}</span>
 						</span>
 					) : (
 					<Dropdown
@@ -556,13 +556,13 @@ export function TopBar({
 							<>
 								<FiMoreHorizontal />
 								<span className="chip-sub">{t("more")}</span>
-								{chat.update && !chat.update.upToDate && <span className="update-dot" />}
+								{!chat.managed && chat.update && !chat.update.upToDate && <span className="update-dot" />}
 							</>
 						}
 						open={moreOpen}
 						onOpenChange={(v) => {
 							setMoreOpen(v);
-							if (v) {
+							if (v && !chat.managed) {
 								send({ type: "check_update" });
 								send({ type: "check_updates_all" });
 							}
