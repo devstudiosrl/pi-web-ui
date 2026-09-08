@@ -36,6 +36,7 @@ import { startControlServer } from "./control-socket.js";
 import { scheduleUploadCleanup } from "./uploads.js";
 import { ensureWindowsBash, windowsBashDir } from "./ensure-bash.js";
 import { listThemes, resolveThemeFile } from "./themes.js";
+import { isManaged, managedRefusal } from "./managed.js";
 import { installPack, isKnownPack, listPacks, readPackFile, removePack } from "./locales.js";
 import {
 	PluginManager,
@@ -196,6 +197,9 @@ if (AUTH_TOKEN) {
 
 /** 引擎选择：PI_WEB_ENGINE=pi|dsh（默认 pi）。重启生效。 */
 const ENGINE: "pi" | "dsh" = process.env.PI_WEB_ENGINE === "dsh" ? "dsh" : "pi";
+
+/** PI_WEB_MANAGED=1: this instance is updated by whoever deploys it. */
+const MANAGED = isManaged();
 
 app.get("/api/health", (_req, res) => {
 	res.json({ ok: true, piVersion: VERSION, cwd: CWD, pid: process.pid, engine: ENGINE });
@@ -864,6 +868,15 @@ wss.on("connection", (ws) => {
 			pending.push(msg);
 			return;
 		}
+		// Managed instances do not install software on themselves: the refusal
+		// lives here, on the server, because hiding the button in the client
+		// would still leave the message reachable to anything that can open the
+		// socket. See server/managed.ts.
+		const refusal = managedRefusal(msg.type, MANAGED);
+		if (refusal) {
+			send({ type: "notice", level: "error", text: refusal });
+			return;
+		}
 		switch (msg.type) {
 			case "prompt":
 				void cs.prompt(msg.text, msg.attachments, msg.queue);
@@ -1215,6 +1228,7 @@ wss.on("connection", (ws) => {
 						serverVersion: VERSION,
 						protocolVersion: PROTOCOL_VERSION,
 						engine: ENGINE,
+						managed: MANAGED,
 					});
 					// Plugin catalog: re-scan + activate new dirs on every attach so
 					// freshly dropped plugins show up without a server restart.

@@ -1125,6 +1125,10 @@ export type ServerMessage =
 			 *  compares it against its own copy — a mismatch means the page was
 			 *  loaded before an app update and must be refreshed. */
 			protocolVersion?: number;
+			/** PI_WEB_MANAGED=1 — updates come from outside, so the client hides
+			 *  the update badge, the UPDATE panel and the plugin market. The
+			 *  server refuses those messages anyway (server/managed.ts). */
+			managed?: boolean;
 	  }
 	| { type: "snapshot"; state: UiState }
 	| {

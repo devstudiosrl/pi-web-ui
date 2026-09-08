@@ -77,6 +77,10 @@ export interface ChatState {
 	serverVersion?: string;
 	/** 引擎标识（pi | dsh）—— ready 消息携带，底栏显示徽标。 */
 	engine?: string;
+	/** PI_WEB_MANAGED=1 on the server: updates and plugin installs come from
+	 *  whoever deploys this instance, so the interface does not offer them.
+	 *  The server refuses those messages regardless (server/managed.ts). */
+	managed?: boolean;
 	/** Persisted session list for the left panel. */
 	sessions: SessionSummary[];
 	/** Open conversations (each runs its own session in parallel). */
@@ -228,7 +232,7 @@ type Action =
 	| { type: "tool_status"; status: ToolStatus }
 	| { type: "notice"; notice: Notice }
 	| { type: "dismiss_notice"; id: number }
-	| { type: "ready"; serverVersion: string; protocolVersion?: number; engine?: string }
+	| { type: "ready"; serverVersion: string; protocolVersion?: number; engine?: string; managed?: boolean }
 	| { type: "sessions"; sessions: SessionSummary[] }
 	| {
 			type: "conversations";
@@ -489,6 +493,7 @@ function reducer(state: ChatState, action: Action): ChatState {
 				...state,
 				serverVersion: action.serverVersion,
 				engine: action.engine,
+				managed: action.managed === true,
 				ready: true,
 				// Old page + new server (or the reverse) after an in-place update:
 				// WS handling on either side may be stale — banner asks for refresh.
@@ -920,6 +925,7 @@ export function useChat() {
 						serverVersion: msg.serverVersion,
 						protocolVersion: msg.protocolVersion,
 						engine: msg.engine,
+						managed: msg.managed,
 					});
 					// Ensure a fresh snapshot on (re)connect.
 					ws.send(JSON.stringify({ type: "get_state" } satisfies ClientMessage));

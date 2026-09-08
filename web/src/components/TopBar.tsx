@@ -470,6 +470,15 @@ export function TopBar({
 						))}
 					</Dropdown>
 
+					{/* Managed instance: the version is worth seeing, the update
+					    machinery is not — whoever deploys this decides when it
+					    changes. The server refuses those messages anyway. */}
+					{chat.managed ? (
+						<span className="chip" title={t("updatesManaged")}>
+							<FiDownload />
+							<span className="chip-sub">v{chat.serverVersion ?? "…"}</span>
+						</span>
+					) : (
 					<Dropdown
 						trigger={
 							<>
@@ -500,6 +509,7 @@ export function TopBar({
 						{renderUpdateBody()}
 						{renderAllUpdatesBody()}
 					</Dropdown>
+					)}
 
 					<a
 						className="chip github"
