@@ -2,7 +2,7 @@
 #
 # The server installs pi-web-ui from this asset, not from npm: npm carries
 # upstream's package, and this fork is not going to publish a competing name
-# there. One tag, one build, one file — and the version in ddra points at it.
+# there. One tag, one build, one file - and the version in ddra points at it.
 name: release
 
 on:
@@ -41,11 +41,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FILE: ${{ steps.pack.outputs.file }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "$FILE" \
-            --title "$GITHUB_REF_NAME" \
-            --notes "pi-web-ui with the Printalo patches — see PATCHES.md.
-
-Install:
-
-    npm i -g --allow-scripts=node-pty https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${FILE}
-"
+          {
+            echo "pi-web-ui with the Printalo patches - see PATCHES.md."
+            echo
+            echo "Install:"
+            echo
+            echo "    npm i -g --allow-scripts=node-pty https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/$FILE"
+          } > notes.md
+          gh release create "$GITHUB_REF_NAME" "$FILE" --title "$GITHUB_REF_NAME" --notes-file notes.md
