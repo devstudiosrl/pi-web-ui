@@ -1,14 +1,14 @@
 # Notice, without anybody having to remember, that upstream has moved.
 #
 # A fork goes stale silently: nothing fails, nothing warns, and one day the
-# version we ship is four months behind the one that has the fix we need. This
-# runs once a week and opens an issue when the version published on npm is not
-# the one the `printalo` branch is built on. It never changes code.
+# version we ship is months behind the one carrying the fix we need. This runs
+# once a week and opens an issue when the version published on npm is not the
+# one the `printalo` branch is built on. It never changes code.
 name: upstream check
 
 on:
   schedule:
-    - cron: "17 6 * * 1"   # Monday morning, before anybody looks
+    - cron: "17 6 * * 1" # Monday morning, before anybody looks
   workflow_dispatch:
 
 permissions:
@@ -29,7 +29,7 @@ jobs:
         run: |
           ours="$(node -p "require('./package.json').version")"
           theirs="$(npm view pi-web-ui version)"
-          echo "ours=$ours"   >> "$GITHUB_OUTPUT"
+          echo "ours=$ours" >> "$GITHUB_OUTPUT"
           echo "theirs=$theirs" >> "$GITHUB_OUTPUT"
           if [ "$ours" = "$theirs" ]; then
             echo "behind=no" >> "$GITHUB_OUTPUT"
@@ -45,24 +45,24 @@ jobs:
           OURS: ${{ steps.v.outputs.ours }}
           THEIRS: ${{ steps.v.outputs.theirs }}
         run: |
-          titolo="upstream $THEIRS is out (we ship $OURS)"
+          title="upstream $THEIRS is out (we ship $OURS)"
           # One open issue at a time: a new one every Monday would train
           # everybody to ignore them.
-          esistente="$(gh issue list --state open --search "$titolo in:title" --json number --jq '.[0].number' || true)"
-          if [ -n "$esistente" ]; then
-            echo "issue #$esistente already open"
+          open="$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number' || true)"
+          if [ -n "$open" ]; then
+            echo "issue #$open already open"
             exit 0
           fi
-          gh issue create --title "$titolo" --body "$(cat <<TESTO
-\`printalo\` is built on **$OURS**; npm serves **$THEIRS**.
-
-    ./scripts/sync-upstream.sh
-
-rebases the patches onto the new release, builds, checks and tags it. If the
-rebase stops on a conflict, upstream touched exactly what one of the patches
-touches — see \`PATCHES.md\`, it is worth reading before resolving.
-
-After the tag is pushed, the release workflow attaches the tarball, and
-\`PI_WEB_UI_VERSIONE\` in ddra (\`made/deploy/versioni.env\`) points at it.
-TESTO
-)"
+          {
+            echo "\`printalo\` is built on **$OURS**; npm serves **$THEIRS**."
+            echo
+            echo "    ./scripts/sync-upstream.sh"
+            echo
+            echo "rebases the patches onto the new release, builds, checks and tags it."
+            echo "If the rebase stops on a conflict, upstream touched exactly what one"
+            echo "of the patches touches - see PATCHES.md, worth reading first."
+            echo
+            echo "After the tag is pushed the release workflow attaches the tarball, and"
+            echo "PI_WEB_UI_VERSIONE in ddra (made/deploy/versioni.env) points at it."
+          } > body.md
+          gh issue create --title "$title" --body-file body.md
