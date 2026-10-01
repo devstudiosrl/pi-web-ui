@@ -18,6 +18,7 @@ permissions:
 
 jobs:
   windows-installer:
+    if: github.repository == 'xing-shuyin/pi-web-ui'
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
@@ -89,6 +90,7 @@ jobs:
           gh release view "$TAG" --json assets --jq '.assets[].name'
 
   macos-installer:
+    if: github.repository == 'xing-shuyin/pi-web-ui'
     runs-on: macos-latest
     timeout-minutes: 45
     steps:
@@ -144,6 +146,7 @@ jobs:
           gh release upload "$TAG" "${ASSETS[@]}" --clobber
 
   linux-installer:
+    if: github.repository == 'xing-shuyin/pi-web-ui'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:

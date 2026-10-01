@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   notes:
+    if: github.repository == 'xing-shuyin/pi-web-ui'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
