@@ -15,9 +15,17 @@
 # Upstream does not tag every release: at the time of writing the newest tag is
 # v0.61.0 while npm serves 0.68.2 and `main` declares it in package.json.
 # Anchoring on tags would freeze this fork three months behind the package we
-# actually install on the server. So the anchor is the commit on upstream/main
-# whose package.json declares the version published on npm — the same bits the
-# server would get from `npm i -g pi-web-ui@<version>`.
+# actually install on the server. So the anchor is the commit the version was
+# published from: npm records it as `gitHead`, and when npm has it and the
+# commit is on upstream/main, that is exactly the bits the server would get
+# from `npm i -g pi-web-ui@<version>`. Without a usable gitHead the anchor
+# falls back to the newest commit on upstream/main whose package.json declares
+# the version — close, but not exact: upstream lands fixes after a version
+# bump without bumping again (0.97.0 had ten such commits on top of it), and
+# the newest commit would carry them although the package does not.
+#
+# SYNC_USE_GITHEAD=0 skips the npm lookup (the script's own test runs against a
+# throwaway repository and must not depend on the registry).
 #
 #   ./scripts/sync-upstream.sh              sync to the current npm version
 #   ./scripts/sync-upstream.sh 0.68.2       sync to a specific version
@@ -74,9 +82,22 @@ version_at() {
 }
 
 ANCHOR=""
-for commit in $(git rev-list --max-count=400 "$UPSTREAM_REMOTE/main"); do
-  if [ "$(version_at "$commit")" = "$VERSION" ]; then ANCHOR="$commit"; break; fi
-done
+GITHEAD=""
+if [ "${SYNC_USE_GITHEAD:-1}" = 1 ]; then
+  GITHEAD="$(npm view "$PKG@$VERSION" gitHead 2>/dev/null || true)"
+fi
+# Trust the published commit only when it is really there: on upstream/main,
+# and declaring the version we were asked for.
+if [ -n "$GITHEAD" ] && git cat-file -e "${GITHEAD}^{commit}" 2>/dev/null \
+   && git merge-base --is-ancestor "$GITHEAD" "$UPSTREAM_REMOTE/main" \
+   && [ "$(version_at "$GITHEAD")" = "$VERSION" ]; then
+  ANCHOR="$GITHEAD"
+  say "npm says $VERSION was published from $(git log -1 --format=%h "$ANCHOR")"
+else
+  for commit in $(git rev-list --max-count=400 "$UPSTREAM_REMOTE/main"); do
+    if [ "$(version_at "$commit")" = "$VERSION" ]; then ANCHOR="$commit"; break; fi
+  done
+fi
 [ -n "$ANCHOR" ] || stop "no commit in the last 400 of $UPSTREAM_REMOTE/main declares $VERSION"
 say "anchor: $(git log -1 --format='%h %s' "$ANCHOR")"
 
