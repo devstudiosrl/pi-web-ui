@@ -25,9 +25,11 @@ jobs:
       - run: npm ci
       # The same three checks as sync-upstream.sh, because a tag can also be
       # pushed by hand and a release nobody built is a release nobody tested.
+      # Build before test, as upstream's CI does: some tests import dist/
+      # (systemd-install runs bin/pi-web-ui.mjs, which loads the built server).
       - run: npm run typecheck
-      - run: npm test
       - run: npm run build
+      - run: npm test
 
       - name: Pack
         id: pack
@@ -42,7 +44,7 @@ jobs:
           FILE: ${{ steps.pack.outputs.file }}
         run: |
           {
-            echo "pi-web-ui with the Printalo patches - see PATCHES.md."
+            echo "pi-web-ui as Printalo ships it - see PATCHES.md."
             echo
             echo "Install:"
             echo

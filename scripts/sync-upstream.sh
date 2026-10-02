@@ -121,8 +121,9 @@ if [ "$BUILD" = 1 ]; then
   say "npm ci"
   npm ci
   say "typecheck"; npm run typecheck
-  say "test";      npm test
+  # Build before test, as upstream's CI does: some tests import dist/.
   say "build";     npm run build
+  say "test";      npm test
 else
   say "--no-build: skipping npm ci, typecheck, test and build"
 fi
